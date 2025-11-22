@@ -1,6 +1,9 @@
+'use client';
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { useEffect } from "react";
+import { initOutagex } from "./lib/outagex-sdk";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,6 +25,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useEffect(() => {
+    initOutagex({
+      projectId: '17bc94c5-7e27-46d6-a8ce-6e21c227287d',
+      backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001',
+    });
+  }, []);
   return (
     <html lang="en">
       <body
