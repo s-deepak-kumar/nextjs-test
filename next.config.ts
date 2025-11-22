@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         component: 'ContactAPI',
         severity: 'error',
         action: 'form_submission',
-      });
+      }, 0);
       console.log('✅ Error captured by Outagex SDK');
     } catch (captureErr) {
       console.error('Failed to capture error with Outagex SDK:', captureErr);
@@ -45,15 +45,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function captureErrorWithDepthLimit(error: Error, options: any) {
-  if (currentDepth >= MAX_DEPTH) {
+async function captureErrorWithDepthLimit(error: Error, options: any, depth: number) {
+  if (depth >= MAX_DEPTH) {
     console.error('Error capturing exceeded maximum depth');
     return;
   }
-  currentDepth++;
   try {
     await captureError(error, options);
-  } finally {
-    currentDepth--;
+  } catch (captureErr) {
+    console.error('Failed to capture error with Outagex SDK:', captureErr);
+    await captureErrorWithDepthLimit(captureErr, options, depth + 1);
   }
 }
