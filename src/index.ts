@@ -1,1 +1,0 @@
-Optimized code will be provided after refactoring, focusing on reducing recursive operations and complex computations
