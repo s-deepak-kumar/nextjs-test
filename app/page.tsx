@@ -1,6 +1,31 @@
+'use client';
 import Image from "next/image";
+import { useEffect } from "react";
+import { captureError } from "./lib/outagex-sdk";
 
 export default function Home() {
+  useEffect(() => {
+    // Add a warn log
+    console.warn('⚠️ Warning: This is a test warning log for Outagex monitoring');
+
+    // Add a runtime error that will be captured by Outagex SDK
+    // This will be automatically caught by the SDK's error handlers
+    setTimeout(() => {
+      try {
+        throw new Error('Test runtime error for Outagex platform - This error should appear in your dashboard');
+      } catch (error) {
+        // Manually capture the error to ensure it's reported
+        if (error instanceof Error) {
+          captureError(error, {
+            source: 'page.tsx',
+            component: 'Home',
+            severity: 'error',
+          });
+        }
+      }
+    }, 2000); // Delay to ensure SDK is initialized
+  }, []);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
