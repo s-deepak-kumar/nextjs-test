@@ -145,12 +145,12 @@ class OutageXSDK {
     const normalizedUrl = this.normalizeUrl(url);
 
     // Check cache first
-    if (this.sourceMapCache[normalizedUrl] !== undefined) {
+    if (normalizedUrl in this.sourceMapCache) {
       return this.sourceMapCache[normalizedUrl];
     }
 
     // Check if already fetching
-    if (this.sourceMapPromises[normalizedUrl]) {
+    if (normalizedUrl in this.sourceMapPromises) {
       return this.sourceMapPromises[normalizedUrl];
     }
 
@@ -520,8 +520,8 @@ class OutageXSDK {
    */
   destroy(): void {
     Object.values(this.sourceMapCache).forEach((consumer) => {
-      if (consumer) {
-        consumer.destroy();
+      if (consumer && typeof (consumer as any).destroy === 'function') {
+        (consumer as any).destroy();
       }
     });
     this.sourceMapCache = {};
