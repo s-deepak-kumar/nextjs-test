@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import { captureError } from '../lib/outagex-sdk';
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
@@ -43,22 +42,6 @@ export default function ContactForm() {
       console.error('Error submitting form:', error);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleTestError = async () => {
-    try {
-      throw new Error('Sample error from ContactForm - Testing Outagex error capture');
-    } catch (error) {
-      if (error instanceof Error) {
-        await captureError(error, {
-          source: 'app/components/ContactForm.tsx',
-          component: 'ContactForm',
-          severity: 'error',
-          action: 'test_error_button_clicked',
-        });
-        alert('Error captured! Check your Outagex dashboard.');
-      }
     }
   };
 
@@ -126,13 +109,6 @@ export default function ContactForm() {
               className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isSubmitting ? 'Sending...' : 'Send Message'}
-            </button>
-            <button
-              type="button"
-              onClick={handleTestError}
-              className="w-full mt-3 px-8 py-4 bg-red-600 text-white rounded-lg font-semibold text-lg hover:bg-red-700 transition-all transform hover:scale-105 shadow-lg"
-            >
-              🧪 Test Error Capture
             </button>
             {submitStatus === 'success' && (
               <div className="mt-4 p-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg">
