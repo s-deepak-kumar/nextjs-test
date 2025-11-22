@@ -13,6 +13,9 @@ if (typeof window === 'undefined') {
   });
 }
 
+const MAX_DEPTH = 5;
+let currentDepth = 0;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -69,7 +72,7 @@ export async function POST(request: NextRequest) {
       : new Error(String(error));
 
     try {
-      await captureError(errorToReport, {
+      await captureErrorWithDepthLimit(errorToReport, {
         source: 'app/api/contact/route.ts',
         component: 'ContactAPI',
         severity: 'error',
@@ -84,5 +87,18 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to save contact' },
       { status: 500 }
     );
+  }
+}
+
+async function captureErrorWithDepthLimit(error: Error, options: any) {
+  if (currentDepth >= MAX_DEPTH) {
+    console.error('Error capturing exceeded maximum depth');
+    return;
+  }
+  currentDepth++;
+  try {
+    await captureError(error, options);
+  } finally {
+    currentDepth--;
   }
 }
