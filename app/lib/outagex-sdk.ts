@@ -92,11 +92,17 @@ class OutageXSDK {
    */
   private parseStackLine(line: string): ParsedStackFrame | null {
     // Chrome/Edge format: "    at functionName (file.js:10:5)"
+    // Also handles: "at https://domain.com/file.js:10:5"
     let match = line.match(/^\s*at\s+(?:(.+?)\s+\()?(.+?):(\d+):(\d+)\)?$/);
     if (match) {
+      let fileName = match[2];
+      
+      // Remove query params from fileName
+      fileName = fileName.split('?')[0].split('#')[0];
+      
       return {
         functionName: match[1]?.trim() || '<anonymous>',
-        fileName: match[2],
+        fileName: fileName,
         lineNumber: parseInt(match[3], 10),
         columnNumber: parseInt(match[4], 10),
         source: line.trim(),
@@ -106,9 +112,10 @@ class OutageXSDK {
     // Firefox format: "functionName@file.js:10:5"
     match = line.match(/^(.+?)@(.+?):(\d+):(\d+)$/);
     if (match) {
+      let fileName = match[2].split('?')[0].split('#')[0];
       return {
         functionName: match[1] || '<anonymous>',
-        fileName: match[2],
+        fileName: fileName,
         lineNumber: parseInt(match[3], 10),
         columnNumber: parseInt(match[4], 10),
         source: line.trim(),
@@ -118,9 +125,10 @@ class OutageXSDK {
     // Safari/alternate format: "file.js:10:5"
     match = line.match(/^(?:(.+?)@)?(.+?):(\d+):(\d+)$/);
     if (match) {
+      let fileName = match[2].split('?')[0].split('#')[0];
       return {
         functionName: match[1] || '<anonymous>',
-        fileName: match[2],
+        fileName: fileName,
         lineNumber: parseInt(match[3], 10),
         columnNumber: parseInt(match[4], 10),
         source: line.trim(),
@@ -131,11 +139,18 @@ class OutageXSDK {
   }
 
   /**
-   * Normalize URL for consistent caching
+   * Normalize URL for consistent caching and source map fetching
    */
   private normalizeUrl(url: string): string {
     // Remove query params and fragments
-    return url.split('?')[0].split('#')[0];
+    let normalized = url.split('?')[0].split('#')[0];
+    
+    // Convert relative URLs to absolute if needed
+    if (normalized.startsWith('/') && typeof window !== 'undefined') {
+      normalized = `${window.location.origin}${normalized}`;
+    }
+    
+    return normalized;
   }
 
   /**
@@ -160,25 +175,38 @@ class OutageXSDK {
         // Try to fetch the .map file
         const mapUrl = normalizedUrl.endsWith('.map') ? normalizedUrl : `${normalizedUrl}.map`;
         
-        console.log(`[OutageX SDK] Fetching source map: ${mapUrl}`);
+        console.log(`[OutageX SDK] 🔍 Fetching source map from: ${mapUrl}`);
         
-        const response = await fetch(mapUrl);
+        const response = await fetch(mapUrl, {
+          method: 'GET',
+          // Important: don't send credentials for source maps
+          credentials: 'omit',
+        });
         
         if (!response.ok) {
-          console.warn(`[OutageX SDK] Could not fetch source map (${response.status}): ${mapUrl}`);
+          console.warn(`[OutageX SDK] ❌ Source map fetch failed (${response.status}): ${mapUrl}`);
           this.sourceMapCache[normalizedUrl] = null;
           return null;
         }
 
+        console.log(`[OutageX SDK] ✅ Source map response received, parsing...`);
+        
         const sourceMapData = await response.json();
+        
+        console.log(`[OutageX SDK] 📦 Source map data:`, {
+          version: sourceMapData.version,
+          sources: sourceMapData.sources?.length || 0,
+          hasMappings: !!sourceMapData.mappings,
+        });
+        
         const consumer = await new SourceMapConsumer(sourceMapData);
         
         this.sourceMapCache[normalizedUrl] = consumer;
-        console.log(`[OutageX SDK] ✅ Source map loaded: ${mapUrl}`);
+        console.log(`[OutageX SDK] ✅ Source map parsed successfully for: ${mapUrl}`);
         
         return consumer;
       } catch (error) {
-        console.warn(`[OutageX SDK] Error fetching source map for ${normalizedUrl}:`, error);
+        console.error(`[OutageX SDK] ❌ Error loading source map for ${normalizedUrl}:`, error);
         this.sourceMapCache[normalizedUrl] = null;
         return null;
       } finally {
@@ -221,7 +249,7 @@ class OutageXSDK {
       }
 
       // Clean up the source path
-      const cleanSource = original.source
+      let cleanSource = original.source
         .replace(/^webpack:\/\/\//, '')
         .replace(/^webpack:\/\//, '')
         .replace(/^\.\//, '')
