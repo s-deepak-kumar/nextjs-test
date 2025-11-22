@@ -15,13 +15,13 @@ export default function Home() {
         throw new Error('Test runtime error for Outagex platform - This error should appear in your dashboard');
       } catch (error) {
         // Manually capture the error to ensure it's reported
-        if (error instanceof Error) {
-          captureError(error, {
-            source: 'page.tsx',
-            component: 'Home',
-            severity: 'error',
-          });
-        }
+        // if (error instanceof Error) {
+        //   captureError(error, {
+        //     source: 'page.tsx',
+        //     component: 'Home',
+        //     severity: 'error',
+        //   });
+        // }
       }
     }, 2000); // Delay to ensure SDK is initialized
   }, []);
